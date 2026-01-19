@@ -1,7 +1,7 @@
 'use client';
 
 import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react';
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { Canvas, useFrame, useThree, type ThreeEvent } from '@react-three/fiber';
 import { useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 import { useCart } from '../cart/useCart';
@@ -458,48 +458,47 @@ function ArmouryScene({
   return (
     <group>
       <primitive
-        object={scene}
-        onPointerMove={(e: any) => {
-          e.stopPropagation();
-          const hit = e.intersections?.[0]?.object;
+  object={scene}
+  onPointerMove={(e: ThreeEvent<PointerEvent>) => {
+    e.stopPropagation();
+    const hit = e.intersections?.[0]?.object;
 
-          let cur: any = hit;
-          let key: string | null = null;
+    let cur: any = hit;
+    let key: string | null = null;
 
-          for (let i = 0; i < 10 && cur; i++) {
-            if (typeof cur.name === 'string' && cur.name.startsWith('artifact_')) {
-              key = cur.name;
-              break;
-            }
-            cur = cur.parent;
-          }
+    for (let i = 0; i < 10 && cur; i++) {
+      if (typeof cur.name === 'string' && cur.name.startsWith('artifact_')) {
+        key = cur.name;
+        break;
+      }
+      cur = cur.parent;
+    }
 
-          onHover(key);
-          document.body.style.cursor = key ? 'pointer' : 'default';
-        }}
-        onPointerOut={(e: any) => {
-          // e не используем, но тип нужен для TS-строгости в билде
-          onHover(null);
-          document.body.style.cursor = 'default';
-        }}
-        onClick={(e: any) => {
-          e.stopPropagation();
-          const hit = e.intersections?.[0]?.object;
+    onHover(key);
+    document.body.style.cursor = key ? 'pointer' : 'default';
+  }}
+  onPointerOut={(_e: ThreeEvent<PointerEvent>) => {
+    onHover(null);
+    document.body.style.cursor = 'default';
+  }}
+  onClick={(e: ThreeEvent<MouseEvent>) => {
+    e.stopPropagation();
+    const hit = e.intersections?.[0]?.object;
 
-          let cur: any = hit;
-          let key: string | null = null;
+    let cur: any = hit;
+    let key: string | null = null;
 
-          for (let i = 0; i < 10 && cur; i++) {
-            if (typeof cur.name === 'string' && cur.name.startsWith('artifact_')) {
-              key = cur.name;
-              break;
-            }
-            cur = cur.parent;
-          }
+    for (let i = 0; i < 10 && cur; i++) {
+      if (typeof cur.name === 'string' && cur.name.startsWith('artifact_')) {
+        key = cur.name;
+        break;
+      }
+      cur = cur.parent;
+    }
 
-          if (key && DEMO_PRODUCTS_BY_OBJECT_KEY[key]) onPick(key);
-        }}
-      />
+    if (key && DEMO_PRODUCTS_BY_OBJECT_KEY[key]) onPick(key);
+  }}
+/>
       <LootMarkers scene={scene} hoveredKey={hoveredKey} />
     </group>
   );
