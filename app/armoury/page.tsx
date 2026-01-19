@@ -6,6 +6,7 @@ import { useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 import { useCart } from '../cart/useCart';
 
+
 const EYE_HEIGHT = 1.8;
 
 type DemoProduct = {
@@ -70,6 +71,9 @@ const DEMO_PRODUCTS_BY_OBJECT_KEY: Record<string, DemoProduct> = {
   artifact_09: { id: 'p09', title: 'Записная книжка экспедиции (демо)', price: '€40', era: 'XX век', short: 'Страницы просят маршрут и карандаш.' },
   artifact_10: { id: 'p10', title: 'Футляр с украшением', price: '€150', era: 'Европа, конец XIX века', short: 'Подарок с “эффектом открытия”.' },
 };
+
+const GLB_URL = 'https://xtkg2ucurafhokax.public.blob.vercel-storage.com/armoury.glb';
+useGLTF.preload(GLB_URL);
 
 // ---------- Loader overlay (видео) ----------
 function VideoLoader() {
@@ -317,7 +321,6 @@ function ArmouryScene({
   const GLB_URL = 'https://xtkg2ucurafhokax.public.blob.vercel-storage.com/armoury.glb';
 
 const { scene } = useGLTF(GLB_URL);
-useGLTF.preload(GLB_URL);
   const { camera } = useThree();
 
   // сигналим, что glb реально уже в руках (сработает 1 раз)
