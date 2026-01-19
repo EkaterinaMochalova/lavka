@@ -58,7 +58,13 @@ const DEMO_PRODUCTS_BY_OBJECT_KEY: Record<string, DemoProduct> = {
       'Глобус, использовавшийся в образовательных целях. Географические обозначения отражают представления своего времени и могут отличаться от современных, что делает предмет ценным историческим свидетельством.',
   },
 
-  artifact_06: { id: 'p06', title: 'Керамический фрагмент (демо)', price: '€30', era: 'Учебная коллекция', short: 'Осколок, который вызывает желание додумать целое.' },
+  artifact_06: {
+    id: 'p06',
+    title: 'Керамический фрагмент (демо)',
+    price: '€30',
+    era: 'Учебная коллекция',
+    short: 'Осколок, который вызывает желание додумать целое.',
+  },
   artifact_07: { id: 'p07', title: 'Миниатюра в рамке', price: '€95', era: 'Конец XIX века', short: 'Портрет, который “смотрит” дольше, чем принято.' },
   artifact_08: { id: 'p08', title: 'Компас/полевой инструмент', price: '€110', era: 'Начало XX века', short: 'Вещь, которая любит точность и руки.' },
   artifact_09: { id: 'p09', title: 'Записная книжка экспедиции (демо)', price: '€40', era: 'XX век', short: 'Страницы просят маршрут и карандаш.' },
@@ -135,7 +141,7 @@ function Modal({
       }}
     >
       <div
-        onClick={(e) => e.stopPropagation()}
+        onClick={(e: React.MouseEvent<HTMLDivElement>) => e.stopPropagation()}
         style={{
           width: 'min(560px, 100%)',
           background: '#111',
@@ -202,7 +208,9 @@ function Modal({
           </button>
         </div>
 
-        <div style={{ marginTop: 10, fontSize: 12, opacity: 0.7 }}>MVP: карточка демо-товара. Фотки и реальный заказ добавим дальше.</div>
+        <div style={{ marginTop: 10, fontSize: 12, opacity: 0.7 }}>
+          MVP: карточка демо-товара. Фотки и реальный заказ добавим дальше.
+        </div>
       </div>
     </div>
   );
@@ -344,7 +352,6 @@ function ArmouryScene({
   useEffect(() => {
     if (didSpawnRef.current) return;
 
-    // важно: чтобы yaw/pitch не “роняли” камеру набок
     camera.rotation.order = 'YXZ';
     camera.rotation.z = 0;
 
@@ -452,7 +459,7 @@ function ArmouryScene({
     <group>
       <primitive
         object={scene}
-        onPointerMove={(e) => {
+        onPointerMove={(e: any) => {
           e.stopPropagation();
           const hit = e.intersections?.[0]?.object;
 
@@ -470,11 +477,12 @@ function ArmouryScene({
           onHover(key);
           document.body.style.cursor = key ? 'pointer' : 'default';
         }}
-        onPointerOut={() => {
+        onPointerOut={(e: any) => {
+          // e не используем, но тип нужен для TS-строгости в билде
           onHover(null);
           document.body.style.cursor = 'default';
         }}
-        onClick={(e) => {
+        onClick={(e: any) => {
           e.stopPropagation();
           const hit = e.intersections?.[0]?.object;
 
@@ -629,7 +637,6 @@ function WalkAndLookControls({
     baseY.current = EYE_HEIGHT;
 
     if (!enabled) {
-      // когда модалка открыта, сбрасываем bob, чтобы не трясло
       bobAmount.current = THREE.MathUtils.damp(bobAmount.current, 0, 10, delta);
       camera.position.y = baseY.current;
       camera.rotation.z = 0;
@@ -699,7 +706,7 @@ function WalkAndLookControls({
     bobAmount.current = THREE.MathUtils.damp(bobAmount.current, target, 10, delta);
 
     if (bobAmount.current > 0.001) {
-      bobT.current += delta * 7.5; // частота шага/качки
+      bobT.current += delta * 7.5;
     }
 
     const t = bobT.current;
