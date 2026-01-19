@@ -314,7 +314,10 @@ function ArmouryScene({
   onWalkMesh: (m: THREE.Object3D | null) => void;
   onReady: () => void;
 }) {
-  const { scene } = useGLTF('/armoury.glb');
+  const GLB_URL = 'https://xtkg2ucurafhokax.public.blob.vercel-storage.com/armoury.glb';
+
+const { scene } = useGLTF(GLB_URL);
+useGLTF.preload(GLB_URL);
   const { camera } = useThree();
 
   // сигналим, что glb реально уже в руках (сработает 1 раз)
@@ -737,8 +740,7 @@ function WalkAndLookControls({
   return null;
 }
 
-// preload чтобы меньше “подвисаний” на первом заходе
-useGLTF.preload('/armoury.glb');
+
 
 export default function ArmouryPage() {
   const cart = useCart();

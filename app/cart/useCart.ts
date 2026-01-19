@@ -1,50 +1,90 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 
 export type CartItem = {
   id: string;
   title: string;
   price: string;
-  objectKey: string;
+  objectKey?: string;
+  qty?: number;
 };
 
-const STORAGE_KEY = 'armoury_cart_v1';
+type CartState = {
+  items: CartItem[];
+  count: number;
+  add: (item: CartItem) => void;
+  remove: (id: string) => void;
+  clear: () => void;
+};
 
-export function useCart() {
+const STORAGE_KEY = 'lavka_cart_v1';
+
+const CartContext = createContext<CartState | null>(null);
+
+function safeParse(json: string | null): CartItem[] {
+  if (!json) return [];
+  try {
+    const data = JSON.parse(json);
+    if (!Array.isArray(data)) return [];
+    return data.filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
+export function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
 
-  // загрузка из localStorage
+  // читаем localStorage ТОЛЬКО на клиенте (после mount)
   useEffect(() => {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) setItems(JSON.parse(raw));
+    if (typeof window === 'undefined') return;
+    const saved = safeParse(window.localStorage.getItem(STORAGE_KEY));
+    setItems(saved);
   }, []);
 
-  // сохранение
+  // синхроним изменения обратно
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
   }, [items]);
 
-  function add(item: CartItem) {
-    setItems((prev) => {
-      if (prev.find((p) => p.id === item.id)) return prev; // антик = 1 штука
-      return [...prev, item];
-    });
-  }
+  const api = useMemo<CartState>(() => {
+    const count = items.reduce((acc, it) => acc + (it.qty ?? 1), 0);
 
-  function remove(id: string) {
-    setItems((prev) => prev.filter((i) => i.id !== id));
-  }
+    return {
+      items,
+      count,
+      add: (item) => {
+        setItems((prev) => {
+          const idx = prev.findIndex((p) => p.id === item.id);
+          if (idx === -1) return [...prev, { ...item, qty: item.qty ?? 1 }];
 
-  function clear() {
-    setItems([]);
-  }
+          const copy = [...prev];
+          const cur = copy[idx];
+          copy[idx] = { ...cur, qty: (cur.qty ?? 1) + (item.qty ?? 1) };
+          return copy;
+        });
+      },
+      remove: (id) => setItems((prev) => prev.filter((p) => p.id !== id)),
+      clear: () => setItems([]),
+    };
+  }, [items]);
 
-  return {
-    items,
-    add,
-    remove,
-    clear,
-    count: items.length,
-  };
+  return <CartContext.Provider value={api}>{children}</CartContext.Provider>;
+}
+
+export function useCart() {
+  const ctx = useContext(CartContext);
+  if (!ctx) {
+    // чтобы не падало, если забыли провайдер (лучше так, чем cryptic error на проде)
+    return {
+      items: [] as CartItem[],
+      count: 0,
+      add: () => {},
+      remove: () => {},
+      clear: () => {},
+    };
+  }
+  return ctx;
 }
