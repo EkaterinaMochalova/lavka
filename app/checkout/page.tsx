@@ -86,7 +86,12 @@ export default function CheckoutPage() {
         address: address.trim(),
         comment: comment.trim(),
       },
-      items: cart.items.map((i) => ({ ...i })),
+      items: cart.items.map((i) => ({
+  id: i.id,
+  title: i.title,
+  price: i.price,
+  objectKey: i.objectKey ?? '',
+})),
       totalEur: total,
     };
 
