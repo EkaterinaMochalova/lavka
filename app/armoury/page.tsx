@@ -318,8 +318,7 @@ function ArmouryScene({
   onWalkMesh: (m: THREE.Object3D | null) => void;
   onReady: () => void;
 }) {
-  const GLB_URL = 'https://xtkg2ucurafhokax.public.blob.vercel-storage.com/armoury.glb';
-
+  const GLB_URL = '/api/armoury-glb';
 const { scene } = useGLTF(GLB_URL);
   const { camera } = useThree();
 
