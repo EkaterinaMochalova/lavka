@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 
 type OrderDraft = {
   id: string;
@@ -25,18 +25,27 @@ type OrderDraft = {
 
 const STORAGE_KEY = 'armoury_orders_v1';
 
-function loadOrders(): OrderDraft[] {
-  const raw = localStorage.getItem(STORAGE_KEY);
-  if (!raw) return [];
+function loadOrdersSafe(): OrderDraft[] {
+  // ✅ SSR-safe
+  if (typeof window === 'undefined') return [];
   try {
-    return JSON.parse(raw);
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
   } catch {
     return [];
   }
 }
 
-function saveOrders(orders: OrderDraft[]) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(orders));
+function saveOrdersSafe(orders: OrderDraft[]) {
+  // ✅ SSR-safe
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(orders));
+  } catch {
+    // ignore
+  }
 }
 
 function fmtDate(iso: string) {
@@ -48,8 +57,16 @@ function fmtDate(iso: string) {
 }
 
 export default function AdminOrdersPage() {
-  const [orders, setOrders] = useState<OrderDraft[]>(() => loadOrders());
-  const [expandedId, setExpandedId] = useState<string | null>(orders[0]?.id ?? null);
+  // ✅ стартуем безопасно (без localStorage в инициализаторе)
+  const [orders, setOrders] = useState<OrderDraft[]>([]);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  // ✅ подгружаем заказы после mount (только клиент)
+  useEffect(() => {
+    const next = loadOrdersSafe();
+    setOrders(next);
+    setExpandedId(next[0]?.id ?? null);
+  }, []);
 
   const stats = useMemo(() => {
     const total = orders.length;
@@ -64,7 +81,7 @@ export default function AdminOrdersPage() {
   }, [orders]);
 
   function refresh() {
-    const next = loadOrders();
+    const next = loadOrdersSafe();
     setOrders(next);
     if (next.length && !expandedId) setExpandedId(next[0].id);
   }
@@ -72,13 +89,13 @@ export default function AdminOrdersPage() {
   function updateStatus(id: string, status: OrderDraft['status']) {
     const next = orders.map((o) => (o.id === id ? { ...o, status } : o));
     setOrders(next);
-    saveOrders(next);
+    saveOrdersSafe(next);
   }
 
   function removeOrder(id: string) {
     const next = orders.filter((o) => o.id !== id);
     setOrders(next);
-    saveOrders(next);
+    saveOrdersSafe(next);
     if (expandedId === id) setExpandedId(next[0]?.id ?? null);
   }
 
@@ -177,12 +194,21 @@ export default function AdminOrdersPage() {
                       <div style={{ fontSize: 12, opacity: 0.75 }}>{fmtDate(o.createdAt)}</div>
                     </div>
                     <div style={{ marginTop: 6, display: 'flex', justifyContent: 'space-between', gap: 10 }}>
-                      <div style={{ fontSize: 13, opacity: 0.85 }}>€{o.totalEur} • {o.items.length} шт.</div>
+                      <div style={{ fontSize: 13, opacity: 0.85 }}>
+                        €{o.totalEur} • {o.items.length} шт.
+                      </div>
                       <div style={{ fontSize: 12, opacity: 0.85 }}>
                         Статус: <b>{o.status}</b>
                       </div>
                     </div>
-                    <div style={{ marginTop: 6, fontSize: 12, opacity: 0.75, fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas' }}>
+                    <div
+                      style={{
+                        marginTop: 6,
+                        fontSize: 12,
+                        opacity: 0.75,
+                        fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas',
+                      }}
+                    >
                       {o.id}
                     </div>
                   </button>
