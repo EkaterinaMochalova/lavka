@@ -78,6 +78,8 @@ const { scene } = useGLTF(GLB_URL);
 
 // ---------- Loader overlay (видео) ----------
 function VideoLoader() {
+  const [ended, setEnded] = React.useState(false);
+
   return (
     <div
       style={{
@@ -105,16 +107,54 @@ function VideoLoader() {
           <video
             autoPlay
             muted
-            loop
             playsInline
             preload="auto"
+            // ❗️ВАЖНО: loop УБИРАЕМ
+            onEnded={() => setEnded(true)}
             style={{ width: '100%', height: 'auto', display: 'block', background: '#000' }}
           >
             <source src="/loader/door.mp4" type="video/mp4" />
           </video>
         </div>
 
-        <div style={{ marginTop: 12, color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Загружаем экспозицию…</div>
+        <div
+          style={{
+            marginTop: 12,
+            color: 'rgba(255,255,255,0.6)',
+            fontSize: 12,
+            display: 'flex',
+            gap: 8,
+            alignItems: 'center',
+          }}
+        >
+          {ended ? 'Почти внутри… собираем экспозицию' : 'Открываем…'}
+          <span className="dots" />
+        </div>
+
+        {/* лёгкая анимация точек */}
+        <style jsx>{`
+          .dots::after {
+            content: '...';
+            animation: dots 1.2s steps(4, end) infinite;
+          }
+          @keyframes dots {
+            0% {
+              content: '';
+            }
+            25% {
+              content: '.';
+            }
+            50% {
+              content: '..';
+            }
+            75% {
+              content: '...';
+            }
+            100% {
+              content: '';
+            }
+          }
+        `}</style>
       </div>
     </div>
   );
@@ -323,12 +363,13 @@ function ArmouryScene({
 
   // сигналим, что glb реально уже в руках (сработает 1 раз)
   const didSignal = useRef(false);
-  useEffect(() => {
-    if (!didSignal.current) {
-      didSignal.current = true;
-      onReady();
-    }
-  }, [onReady]);
+useEffect(() => {
+  if (didSignal.current) return;
+  // “прогрев” 1-2 кадра, чтобы не было резкого мигания после двери
+  didSignal.current = true;
+  const t = window.setTimeout(() => onReady(), 250);
+  return () => window.clearTimeout(t);
+}, [scene, onReady]);
 
   // 0) walkmesh (невидимый), ограничение “по полу”
   useEffect(() => {
