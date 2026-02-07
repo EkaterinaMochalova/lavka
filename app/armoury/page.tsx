@@ -78,7 +78,7 @@ useGLTF.preload(GLB_URL);
 
 // ---------- Loader overlay (видео) ----------
 function VideoLoader() {
-  const [ended, setEnded] = React.useState(false);
+  const [showText, setShowText] = React.useState(false);
 
   return (
     <div
@@ -86,76 +86,74 @@ function VideoLoader() {
         position: 'fixed',
         inset: 0,
         background: '#000',
-        display: 'grid',
-        placeItems: 'center',
         zIndex: 9999,
       }}
     >
-      <div style={{ width: 'min(900px, 92vw)' }}>
-        <div style={{ color: 'rgba(255,255,255,0.85)', fontSize: 14, letterSpacing: 0.8, marginBottom: 10 }}>
-          Лавка старьёвщика
-        </div>
+      {/* Видео на весь экран */}
+      <video
+        autoPlay
+        muted
+        playsInline
+        preload="auto"
+        onEnded={() => {
+          // после стука показываем текст
+          setShowText(true);
+        }}
+        style={{
+          position: 'absolute',
+          inset: 0,
+          width: '100%',
+          height: '100%',
+          objectFit: 'cover',
+          background: '#000',
+        }}
+      >
+        <source src="/loader/door.mp4" type="video/mp4" />
+      </video>
 
+      {/* Текст ожидания */}
+      {showText && (
         <div
           style={{
-            borderRadius: 18,
-            overflow: 'hidden',
-            border: '1px solid rgba(255,255,255,0.10)',
-            boxShadow: '0 30px 80px rgba(0,0,0,0.65)',
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            bottom: '18%',
+            textAlign: 'center',
+            color: 'rgba(255,255,255,0.85)',
+            fontSize: 18,
+            letterSpacing: 0.6,
           }}
         >
-          <video
-            autoPlay
-            muted
-            playsInline
-            preload="auto"
-            // ❗️ВАЖНО: loop УБИРАЕМ
-            onEnded={() => setEnded(true)}
-            style={{ width: '100%', height: 'auto', display: 'block', background: '#000' }}
-          >
-            <source src="/loader/door.mp4" type="video/mp4" />
-          </video>
-        </div>
+          <span>
+            Кто-то подходит к двери<span className="dots">…</span>
+          </span>
 
-        <div
-          style={{
-            marginTop: 12,
-            color: 'rgba(255,255,255,0.6)',
-            fontSize: 12,
-            display: 'flex',
-            gap: 8,
-            alignItems: 'center',
-          }}
-        >
-          {ended ? 'Почти внутри… собираем экспозицию' : 'Открываем…'}
-          <span className="dots" />
+          <style jsx>{`
+            .dots::after {
+              content: '';
+              animation: dots 1.2s steps(4, end) infinite;
+            }
+            @keyframes dots {
+              0% {
+                content: '';
+              }
+              25% {
+                content: '.';
+              }
+              50% {
+                content: '..';
+              }
+              75% {
+                content: '...';
+              }
+              100% {
+                content: '';
+              }
+            }
+          `}</style>
         </div>
-
-        {/* лёгкая анимация точек */}
-        <style jsx>{`
-          .dots::after {
-            content: '...';
-            animation: dots 1.2s steps(4, end) infinite;
-          }
-          @keyframes dots {
-            0% {
-              content: '';
-            }
-            25% {
-              content: '.';
-            }
-            50% {
-              content: '..';
-            }
-            75% {
-              content: '...';
-            }
-            100% {
-              content: '';
-            }
-          }
-        `}</style>
-      </div>
+      )}
     </div>
   );
 }
