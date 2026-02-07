@@ -5,6 +5,7 @@ import { Canvas, useFrame, useThree, type ThreeEvent } from '@react-three/fiber'
 import { useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 import { useCart } from '../cart/useCart';
+import AskAntiquarianDialog from '../components/AskAntiquarianDialog';
 
 
 const EYE_HEIGHT = 1.8;
@@ -855,6 +856,7 @@ function WalkAndLookControls({
 
 export default function ArmouryPage() {
   const cart = useCart();
+  const [isAskOpen, setIsAskOpen] = useState(false);
 
   const [ready, setReady] = useState(false);
 
@@ -883,6 +885,28 @@ export default function ArmouryPage() {
   return (
     <div style={{ width: '100vw', height: '100vh' }}>
       {!ready && <VideoLoader />}
+
+      <div style={{ position: 'fixed', top: 14, left: 14, zIndex: 90 }}>
+  <button
+    onClick={() => setIsAskOpen(true)}
+    style={{
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: 10,
+      padding: '10px 12px',
+      borderRadius: 12,
+      background: 'rgba(0,0,0,0.45)',
+      color: '#fff',
+      border: '1px solid rgba(255,255,255,0.12)',
+      backdropFilter: 'blur(6px)',
+      cursor: 'pointer',
+      fontSize: 13,
+      fontWeight: 700,
+    }}
+  >
+    🗣️ Задать вопрос старьёвщику
+  </button>
+</div>
 
       {/* корзина */}
       <div style={{ position: 'fixed', top: 14, right: 14, zIndex: 90 }}>
@@ -1003,6 +1027,7 @@ export default function ArmouryPage() {
           }}
         />
       )}
+      <AskAntiquarianDialog open={isAskOpen} onClose={() => setIsAskOpen(false)} />
     </div>
   );
 }
