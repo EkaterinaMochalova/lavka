@@ -79,6 +79,7 @@ useGLTF.preload(GLB_URL);
 // ---------- Loader overlay (видео) ----------
 function VideoLoader() {
   const [showText, setShowText] = React.useState(false);
+  const [fade, setFade] = React.useState(false);
 
   return (
     <div
@@ -96,8 +97,9 @@ function VideoLoader() {
         playsInline
         preload="auto"
         onEnded={() => {
-          // после стука показываем текст
           setShowText(true);
+          // запускаем затемнение спустя маленькую паузу
+          window.setTimeout(() => setFade(true), 250);
         }}
         style={{
           position: 'absolute',
@@ -108,8 +110,20 @@ function VideoLoader() {
           background: '#000',
         }}
       >
-        <source src="/loader/door.mp4" type="video/mp4" />
+        <source src="/loader/knock.mp4" type="video/mp4" />
       </video>
+
+      {/* Плавное затемнение */}
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          background: '#000',
+          opacity: fade ? 0.65 : 0,
+          transition: 'opacity 1200ms ease',
+          pointerEvents: 'none',
+        }}
+      />
 
       {/* Текст ожидания */}
       {showText && (
@@ -120,18 +134,16 @@ function VideoLoader() {
             right: 0,
             bottom: '18%',
             textAlign: 'center',
-            color: 'rgba(255,255,255,0.85)',
+            color: 'rgba(255,255,255,0.88)',
             fontSize: 18,
             letterSpacing: 0.6,
           }}
         >
-          <span>
-            Кто-то подходит к двери<span className="dots">…</span>
-          </span>
+          Кто-то подходит к двери<span className="dots" />
 
           <style jsx>{`
             .dots::after {
-              content: '';
+              content: '...';
               animation: dots 1.2s steps(4, end) infinite;
             }
             @keyframes dots {
