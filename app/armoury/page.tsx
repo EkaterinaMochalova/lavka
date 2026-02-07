@@ -119,7 +119,7 @@ function VideoLoader() {
           background: '#000',
         }}
       >
-        <source src="/loader/knock.mp4" type="video/mp4" />
+        <source src="/loader/door.mp4" type="video/mp4" />
       </video>
 
       {/* Затемнение */}
