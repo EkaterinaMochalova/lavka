@@ -75,6 +75,8 @@ const DEMO_PRODUCTS_BY_OBJECT_KEY: Record<string, DemoProduct> = {
 const GLB_URL = '/api/armoury-glb';
 useGLTF.preload(GLB_URL);
 const { scene } = useGLTF(GLB_URL);
+const { camera } = useThree(); // ✅ ВОТ ЭТА СТРОКА НУЖНА
+
 
 // ---------- Loader overlay (видео) ----------
 function VideoLoader() {
