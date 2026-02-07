@@ -78,28 +78,37 @@ useGLTF.preload(GLB_URL);
 
 // ---------- Loader overlay (видео) ----------
 function VideoLoader() {
-  const [showText, setShowText] = React.useState(false);
+  const [phase, setPhase] = React.useState<'video' | 'waiting'>('video');
   const [fade, setFade] = React.useState(false);
+  const [msg, setMsg] = React.useState('Кто-то подходит к двери');
+  const vref = React.useRef<HTMLVideoElement | null>(null);
+
+  React.useEffect(() => {
+    // если грузится слишком долго, меняем реплики
+    const t1 = window.setTimeout(() => setMsg('Слышны шаги…'), 4000);
+    const t2 = window.setTimeout(() => setMsg('Ключ поворачивается в замке…'), 9000);
+    const t3 = window.setTimeout(() => setMsg('Сейчас откроют.'), 14000);
+    return () => { window.clearTimeout(t1); window.clearTimeout(t2); window.clearTimeout(t3); };
+  }, []);
 
   return (
-    <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        background: '#000',
-        zIndex: 9999,
-      }}
-    >
-      {/* Видео на весь экран */}
+    <div style={{ position: 'fixed', inset: 0, background: '#000', zIndex: 9999 }}>
       <video
+        ref={vref}
         autoPlay
         muted
         playsInline
         preload="auto"
         onEnded={() => {
-          setShowText(true);
-          // запускаем затемнение спустя маленькую паузу
-          window.setTimeout(() => setFade(true), 250);
+          // “заморозить” на последнем кадре
+          const v = vref.current;
+          if (v) {
+            v.pause();
+            // иногда помогает чуть отмотать назад, чтобы точно был кадр
+            v.currentTime = Math.max(0, v.duration - 0.05);
+          }
+          setPhase('waiting');
+          window.setTimeout(() => setFade(true), 150);
         }}
         style={{
           position: 'absolute',
@@ -113,59 +122,48 @@ function VideoLoader() {
         <source src="/loader/knock.mp4" type="video/mp4" />
       </video>
 
-      {/* Плавное затемнение */}
+      {/* Затемнение */}
       <div
         style={{
           position: 'absolute',
           inset: 0,
           background: '#000',
-          opacity: fade ? 0.65 : 0,
-          transition: 'opacity 1200ms ease',
+          opacity: phase === 'waiting' ? (fade ? 0.7 : 0.2) : 0.15,
+          transition: 'opacity 900ms ease',
           pointerEvents: 'none',
         }}
       />
 
-      {/* Текст ожидания */}
-      {showText && (
-        <div
-          style={{
-            position: 'absolute',
-            left: 0,
-            right: 0,
-            bottom: '18%',
-            textAlign: 'center',
-            color: 'rgba(255,255,255,0.88)',
-            fontSize: 18,
-            letterSpacing: 0.6,
-          }}
-        >
-          Кто-то подходит к двери<span className="dots" />
-
-          <style jsx>{`
-            .dots::after {
-              content: '...';
-              animation: dots 1.2s steps(4, end) infinite;
-            }
-            @keyframes dots {
-              0% {
-                content: '';
-              }
-              25% {
-                content: '.';
-              }
-              50% {
-                content: '..';
-              }
-              75% {
-                content: '...';
-              }
-              100% {
-                content: '';
-              }
-            }
-          `}</style>
-        </div>
-      )}
+      {/* Текст */}
+      <div
+        style={{
+          position: 'absolute',
+          left: 0,
+          right: 0,
+          bottom: '18%',
+          textAlign: 'center',
+          color: 'rgba(255,255,255,0.9)',
+          fontSize: 18,
+          letterSpacing: 0.6,
+          textShadow: '0 2px 18px rgba(0,0,0,0.7)',
+        }}
+      >
+        {msg}
+        <span className="dots" />
+        <style jsx>{`
+          .dots::after {
+            content: '...';
+            animation: dots 1.2s steps(4, end) infinite;
+          }
+          @keyframes dots {
+            0% { content: ''; }
+            25% { content: '.'; }
+            50% { content: '..'; }
+            75% { content: '...'; }
+            100% { content: ''; }
+          }
+        `}</style>
+      </div>
     </div>
   );
 }
