@@ -6,6 +6,7 @@ import { useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 import { useCart } from '../cart/useCart';
 import AskAntiquarianDialog from '../components/AskAntiquarianDialog';
+import AtticDialog from './AtticDialog';
 
 
 const EYE_HEIGHT = 1.8;
@@ -852,7 +853,556 @@ function WalkAndLookControls({
   return null;
 }
 
+type AtticItem = {
+  id: string;
+  title: string;
+  price: string;
+  tag: string; // чтобы подбирать
+  blurb: string;
+  image: string; // можно потом заменить на реальные файлы
+};
 
+const ATTIC_ITEMS: AtticItem[] = [
+  {
+    id: 'attic_01',
+    title: 'Медальон с пустым портретом',
+    price: '€34',
+    tag: 'romance',
+    blurb:
+      'Внутри нет лица. Только тонкий след от старой вставки, как будто кто-то хотел забыть аккуратно. Подходит тем, кто любит истории без финала.',
+    image: '/attic/medallion.jpg',
+  },
+  {
+    id: 'attic_02',
+    title: 'Карманные часы “Тихий полдень”',
+    price: '€79',
+    tag: 'classic',
+    blurb:
+      'Стрелки ходят честно, но секундная будто сомневается. На крышке микроцарапина, похожая на карту маленького города.',
+    image: '/attic/watch.jpg',
+  },
+  {
+    id: 'attic_03',
+    title: 'Письмо без адреса (в конверте)',
+    price: '€18',
+    tag: 'story',
+    blurb:
+      'Не распечатано. Воск цел, но тёплый, как будто его держали в ладони. Хорошо дарить человеку, который любит загадки и бережёт паузы.',
+    image: '/attic/letter.jpg',
+  },
+  {
+    id: 'attic_04',
+    title: 'Флакон “Аптекарский сумрак”',
+    price: '€26',
+    tag: 'mystic',
+    blurb:
+      'Синий стеклянный пузырёк. Ничего внутри, кроме воздуха… но воздух иногда тоже товар.',
+    image: '/attic/bottle.jpg',
+  },
+  {
+    id: 'attic_05',
+    title: 'Ключ без замка',
+    price: '€22',
+    tag: 'mystic',
+    blurb:
+      'Железо темнеет, зубцы стерты временем. Отличный подарок тем, кто “вечно ищет своё”.',
+    image: '/attic/key.jpg',
+  },
+  {
+    id: 'attic_06',
+    title: 'Записная книжка путешественника',
+    price: '€41',
+    tag: 'practical',
+    blurb:
+      'Чистая, но пахнет дымком и кожей. Первая страница будто просит маршрут и ошибку.',
+    image: '/attic/notebook.jpg',
+  },
+  {
+    id: 'attic_07',
+    title: 'Брошь “Скромное солнце”',
+    price: '€52',
+    tag: 'celebrate',
+    blurb:
+      'Небольшая, не кричит. Ловит свет и отдаёт его обратно, как хороший человек.',
+    image: '/attic/brooch.jpg',
+  },
+  {
+    id: 'attic_08',
+    title: 'Чёрная свеча (ручная)',
+    price: '€12',
+    tag: 'mystic',
+    blurb:
+      'Горит ровно и долго. Тень от неё выглядит убедительно. Для вечеров, когда хочется сделать тишину красивой.',
+    image: '/attic/candle.jpg',
+  },
+  {
+    id: 'attic_09',
+    title: 'Мини-глобус “Старые границы”',
+    price: '€58',
+    tag: 'classic',
+    blurb:
+      'Некоторые названия уже не встретишь на современных картах. Хороший подарок тем, кто любит “как было раньше” и умеет спорить мягко.',
+    image: '/attic/globe.jpg',
+  },
+  {
+    id: 'attic_10',
+    title: 'Футляр с зеркальцем',
+    price: '€29',
+    tag: 'romance',
+    blurb:
+      'Крошечное зеркало, которое не льстит. Нужная вещь для людей, которые любят правду, но не грубость.',
+    image: '/attic/mirror.jpg',
+  },
+];
+
+type AtticAnswers = {
+  who?: 'partner' | 'friend' | 'parent' | 'colleague' | 'self';
+  occasion?: 'birthday' | 'anniversary' | 'thanks' | 'house' | 'just';
+  vibe?: 'mystic' | 'classic' | 'romance' | 'story' | 'practical';
+  budget?: 'low' | 'mid' | 'high';
+  twist?: 'tiny' | 'useful' | 'weird' | 'heart';
+};
+
+function pickAttic(items: AtticItem[], a: AtticAnswers): AtticItem[] {
+  const budgetOk = (price: string) => {
+    const n = Number(price.replace(/[^\d]/g, '')) || 0;
+    if (a.budget === 'low') return n <= 25;
+    if (a.budget === 'mid') return n > 25 && n <= 60;
+    if (a.budget === 'high') return n > 60;
+    return true;
+  };
+
+  const score = (it: AtticItem) => {
+    let s = 0;
+    if (a.vibe && it.tag === a.vibe) s += 4;
+    if (budgetOk(it.price)) s += 3;
+
+    // лёгкие “переклички” шагов, чтобы казалось умнее, чем оно есть 😄
+    if (a.occasion === 'thanks' && (it.tag === 'practical' || it.tag === 'classic')) s += 2;
+    if (a.occasion === 'anniversary' && (it.tag === 'romance' || it.tag === 'story')) s += 2;
+    if (a.who === 'colleague' && it.tag === 'classic') s += 2;
+    if (a.who === 'parent' && (it.tag === 'classic' || it.tag === 'practical')) s += 2;
+    if (a.who === 'friend' && (it.tag === 'story' || it.tag === 'mystic')) s += 1;
+
+    if (a.twist === 'useful' && it.tag === 'practical') s += 2;
+    if (a.twist === 'weird' && it.tag === 'mystic') s += 2;
+    if (a.twist === 'heart' && (it.tag === 'romance' || it.tag === 'story')) s += 2;
+    if (a.twist === 'tiny' && (Number(it.price.replace(/[^\d]/g, '')) || 0) <= 30) s += 1;
+
+    return s;
+  };
+
+  return [...items]
+    .map((it) => ({ it, s: score(it) }))
+    .sort((a, b) => b.s - a.s)
+    .slice(0, 4)
+    .map((x) => x.it);
+}
+
+function AtticDialog({
+  onClose,
+  onAddToCart,
+}: {
+  onClose: () => void;
+  onAddToCart: (item: AtticItem) => void;
+}) {
+  const [step, setStep] = React.useState<1 | 2 | 3 | 4 | 5 | 6>(1);
+  const [answers, setAnswers] = React.useState<AtticAnswers>({});
+  const [choicesVisible, setChoicesVisible] = React.useState(false);
+
+  // мягко: текст появляется, потом варианты (как “пауза” в Disco)
+  React.useEffect(() => {
+    setChoicesVisible(false);
+    const t = window.setTimeout(() => setChoicesVisible(true), 420);
+    return () => window.clearTimeout(t);
+  }, [step]);
+
+  const prompt = (() => {
+    switch (step) {
+      case 1:
+        return 'Кому подарок? Не бойся: я никому не скажу.';
+      case 2:
+        return 'Повод. Слова иногда важнее коробки.';
+      case 3:
+        return 'Какое настроение ищем?';
+      case 4:
+        return 'Бюджет. Я умею быть деликатным с цифрами.';
+      case 5:
+        return 'И последнее: какой “тюк” добавить?';
+      case 6:
+        return 'Нашёл на чердаке несколько вещей. Некоторые… нашли тебя раньше, чем ты их.';
+    }
+  })();
+
+  const options = (() => {
+    if (step === 1)
+      return [
+        { k: 'partner', t: 'Партнёру' },
+        { k: 'friend', t: 'Другу/подруге' },
+        { k: 'parent', t: 'Родителю' },
+        { k: 'colleague', t: 'Коллеге' },
+        { k: 'self', t: 'Себе (да!)' },
+      ] as const;
+
+    if (step === 2)
+      return [
+        { k: 'birthday', t: 'День рождения' },
+        { k: 'anniversary', t: 'Годовщина' },
+        { k: 'thanks', t: '“Спасибо”' },
+        { k: 'house', t: 'Новоселье' },
+        { k: 'just', t: 'Просто так' },
+      ] as const;
+
+    if (step === 3)
+      return [
+        { k: 'mystic', t: 'Мистично и странно' },
+        { k: 'classic', t: 'Классика и статус' },
+        { k: 'romance', t: 'Тепло и нежно' },
+        { k: 'story', t: 'С историей и загадкой' },
+        { k: 'practical', t: 'Полезно и красиво' },
+      ] as const;
+
+    if (step === 4)
+      return [
+        { k: 'low', t: 'До €25' },
+        { k: 'mid', t: '€25–€60' },
+        { k: 'high', t: '€60+' },
+      ] as const;
+
+    if (step === 5)
+      return [
+        { k: 'tiny', t: 'Небольшое и милое' },
+        { k: 'useful', t: 'Чтобы пользовались' },
+        { k: 'weird', t: 'Странненькое' },
+        { k: 'heart', t: 'Чтобы в сердце' },
+      ] as const;
+
+    return [] as const;
+  })();
+
+  const recs = step === 6 ? pickAttic(ATTIC_ITEMS, answers) : [];
+
+  const choose = (k: any) => {
+    if (step === 1) setAnswers((a) => ({ ...a, who: k }));
+    if (step === 2) setAnswers((a) => ({ ...a, occasion: k }));
+    if (step === 3) setAnswers((a) => ({ ...a, vibe: k }));
+    if (step === 4) setAnswers((a) => ({ ...a, budget: k }));
+    if (step === 5) setAnswers((a) => ({ ...a, twist: k }));
+
+    if (step < 5) setStep((step + 1) as any);
+    else setStep(6);
+  };
+
+  const restart = () => {
+    setAnswers({});
+    setStep(1);
+  };
+
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 120,
+        pointerEvents: 'auto',
+      }}
+    >
+      {/* затемнение */}
+      <div
+        onClick={onClose}
+        style={{
+          position: 'absolute',
+          inset: 0,
+          background: 'rgba(0,0,0,0.55)',
+          backdropFilter: 'blur(6px)',
+        }}
+      />
+
+      {/* панель диалога */}
+      <div
+        style={{
+          position: 'absolute',
+          left: 0,
+          right: 0,
+          bottom: 0,
+          padding: '18px 18px 16px',
+          display: 'grid',
+          placeItems: 'center',
+        }}
+      >
+        <div
+          style={{
+            width: 'min(980px, 96vw)',
+            borderRadius: 22,
+            border: '1px solid rgba(255,255,255,0.12)',
+            background: 'linear-gradient(180deg, rgba(10,10,10,0.92), rgba(0,0,0,0.88))',
+            boxShadow: '0 30px 90px rgba(0,0,0,0.65)',
+            overflow: 'hidden',
+          }}
+        >
+          {/* верхняя полоска */}
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              padding: '12px 14px',
+              borderBottom: '1px solid rgba(255,255,255,0.10)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div
+                style={{
+                  width: 34,
+                  height: 34,
+                  borderRadius: 12,
+                  background: 'rgba(255,255,255,0.08)',
+                  border: '1px solid rgba(255,255,255,0.10)',
+                  display: 'grid',
+                  placeItems: 'center',
+                }}
+                aria-hidden
+              >
+                🧥
+              </div>
+              <div>
+                <div style={{ color: 'rgba(255,255,255,0.92)', fontWeight: 800, letterSpacing: 0.2, fontSize: 13 }}>
+                  Старьёвщик
+                </div>
+                <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: 12 }}>
+                  “Чердак отвечает, но не обещает”
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={onClose}
+              style={{
+                background: 'transparent',
+                color: 'rgba(255,255,255,0.9)',
+                border: '1px solid rgba(255,255,255,0.18)',
+                borderRadius: 12,
+                padding: '8px 10px',
+                cursor: 'pointer',
+                fontWeight: 700,
+              }}
+            >
+              ✕
+            </button>
+          </div>
+
+          {/* тело */}
+          <div style={{ padding: '14px 14px 16px' }}>
+            <div
+              className="atticText"
+              style={{
+                color: 'rgba(255,255,255,0.92)',
+                fontSize: 18,
+                lineHeight: 1.35,
+                letterSpacing: 0.15,
+              }}
+            >
+              {prompt}
+              <span className="cursor" aria-hidden />
+            </div>
+
+            {/* варианты */}
+            {step !== 6 && (
+              <div
+                style={{
+                  marginTop: 14,
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  gap: 10,
+                  opacity: choicesVisible ? 1 : 0,
+                  transition: 'opacity 220ms ease',
+                }}
+              >
+                {options.map((o, idx) => (
+                  <button
+                    key={o.k}
+                    className="atticChoice"
+                    onClick={() => choose(o.k)}
+                    style={{ animationDelay: `${idx * 70}ms` }}
+                  >
+                    {o.t}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* рекомендации */}
+            {step === 6 && (
+              <div style={{ marginTop: 14 }}>
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                  {recs.map((it, idx) => (
+                    <div
+                      key={it.id}
+                      className="atticCard"
+                      style={{ animationDelay: `${idx * 90}ms` }}
+                    >
+                      <div
+                        style={{
+                          width: 92,
+                          height: 92,
+                          borderRadius: 16,
+                          background: 'rgba(255,255,255,0.06)',
+                          border: '1px solid rgba(255,255,255,0.10)',
+                          overflow: 'hidden',
+                          flex: '0 0 auto',
+                          display: 'grid',
+                          placeItems: 'center',
+                          position: 'relative',
+                        }}
+                        title="Картинку можно заменить на реальную"
+                      >
+                        {/* Плейсхолдер. Если добавишь реальные картинки в /public/attic/* — просто заработает. */}
+                        <img
+                          src={it.image}
+                          alt={it.title}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          onError={(e) => {
+                            (e.currentTarget as HTMLImageElement).style.display = 'none';
+                          }}
+                        />
+                        <div
+                          style={{
+                            position: 'absolute',
+                            inset: 0,
+                            display: 'grid',
+                            placeItems: 'center',
+                            color: 'rgba(255,255,255,0.55)',
+                            fontSize: 12,
+                            padding: 10,
+                            textAlign: 'center',
+                          }}
+                        >
+                          {/* видно только если img не загрузился */}
+                          <span style={{ opacity: 0.8 }}>из чердачной полки</span>
+                        </div>
+                      </div>
+
+                      <div style={{ flex: 1, minWidth: 220 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'baseline' }}>
+                          <div style={{ fontWeight: 900, color: 'rgba(255,255,255,0.92)', fontSize: 15 }}>
+                            {it.title}
+                          </div>
+                          <div style={{ fontWeight: 900, color: 'rgba(255,255,255,0.88)' }}>{it.price}</div>
+                        </div>
+                        <div style={{ marginTop: 6, color: 'rgba(255,255,255,0.72)', lineHeight: 1.35, fontSize: 13 }}>
+                          {it.blurb}
+                        </div>
+
+                        <div style={{ marginTop: 10, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                          <button className="atticPrimary" onClick={() => onAddToCart(it)}>
+                            Взять эту вещь
+                          </button>
+                          <button className="atticGhost" onClick={restart}>
+                            Спросить заново
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div style={{ marginTop: 12, color: 'rgba(255,255,255,0.55)', fontSize: 12 }}>
+                  Подбор демо. Позже привяжем это к реальному каталогу и складу.
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Стили (мягко, “киношно”, кнопки появляются не резко) */}
+      <style jsx>{`
+        .cursor {
+          display: inline-block;
+          width: 10px;
+          height: 18px;
+          margin-left: 6px;
+          border-radius: 4px;
+          background: rgba(255, 255, 255, 0.22);
+          transform: translateY(3px);
+          animation: blink 900ms ease-in-out infinite;
+        }
+        @keyframes blink {
+          0% { opacity: 0.15; }
+          50% { opacity: 0.55; }
+          100% { opacity: 0.15; }
+        }
+
+        .atticChoice {
+          appearance: none;
+          border: 1px solid rgba(255,255,255,0.14);
+          background: rgba(255,255,255,0.06);
+          color: rgba(255,255,255,0.92);
+          border-radius: 14px;
+          padding: 10px 12px;
+          cursor: pointer;
+          font-weight: 750;
+          font-size: 13px;
+          letter-spacing: 0.15px;
+          backdrop-filter: blur(8px);
+
+          opacity: 0;
+          transform: translateY(10px);
+          animation: popIn 420ms cubic-bezier(0.2, 0.9, 0.2, 1) forwards;
+        }
+        .atticChoice:hover {
+          background: rgba(255,255,255,0.10);
+          border-color: rgba(255,255,255,0.22);
+        }
+
+        .atticCard {
+          display: flex;
+          gap: 12px;
+          align-items: flex-start;
+          width: min(980px, 100%);
+          border: 1px solid rgba(255,255,255,0.12);
+          background: rgba(255,255,255,0.05);
+          border-radius: 18px;
+          padding: 12px;
+
+          opacity: 0;
+          transform: translateY(10px);
+          animation: popIn 520ms cubic-bezier(0.2, 0.9, 0.2, 1) forwards;
+        }
+
+        .atticPrimary {
+          border: 0;
+          background: rgba(255,255,255,0.92);
+          color: rgba(0,0,0,0.92);
+          border-radius: 14px;
+          padding: 10px 12px;
+          cursor: pointer;
+          font-weight: 900;
+          letter-spacing: 0.15px;
+        }
+        .atticPrimary:hover { filter: brightness(1.05); }
+
+        .atticGhost {
+          border: 1px solid rgba(255,255,255,0.18);
+          background: transparent;
+          color: rgba(255,255,255,0.92);
+          border-radius: 14px;
+          padding: 10px 12px;
+          cursor: pointer;
+          font-weight: 800;
+        }
+        .atticGhost:hover { background: rgba(255,255,255,0.06); }
+
+        @keyframes popIn {
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+      `}</style>
+    </div>
+  );
+}
 
 export default function ArmouryPage() {
   const cart = useCart();
@@ -865,6 +1415,7 @@ export default function ArmouryPage() {
 
   const [pickedKey, setPickedKey] = useState<string | null>(null);
   const [hoverKey, setHoverKey] = useState<string | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   const pickedProduct = pickedKey ? DEMO_PRODUCTS_BY_OBJECT_KEY[pickedKey] : null;
   const controlsEnabled = !pickedProduct;
@@ -886,25 +1437,28 @@ export default function ArmouryPage() {
     <div style={{ width: '100vw', height: '100vh' }}>
       {!ready && <VideoLoader />}
 
-      <div style={{ position: 'fixed', top: 14, left: 14, zIndex: 90 }}>
+ {/* спросить старьёвщика */}
+<div style={{ position: 'fixed', bottom: 14, left: 14, zIndex: 95 }}>
   <button
-    onClick={() => setIsAskOpen(true)}
+    onClick={() => setDialogOpen(true)}
     style={{
       display: 'inline-flex',
       alignItems: 'center',
       gap: 10,
-      padding: '10px 12px',
-      borderRadius: 12,
-      background: 'rgba(0,0,0,0.45)',
+      padding: '12px 14px',
+      borderRadius: 14,
+      background: 'rgba(0,0,0,0.55)',
       color: '#fff',
-      border: '1px solid rgba(255,255,255,0.12)',
-      backdropFilter: 'blur(6px)',
+      border: '1px solid rgba(255,255,255,0.14)',
+      backdropFilter: 'blur(8px)',
       cursor: 'pointer',
       fontSize: 13,
-      fontWeight: 700,
+      fontWeight: 750,
+      letterSpacing: 0.2,
     }}
   >
-    🗣️ Задать вопрос старьёвщику
+    🕯️ Задать вопрос старьёвщику
+    <span style={{ opacity: 0.75, fontSize: 12 }}>подбор подарка</span>
   </button>
 </div>
 
@@ -1015,6 +1569,16 @@ export default function ArmouryPage() {
 
         <WalkAndLookControls enabled={controlsEnabled} bounds={bounds} walkMesh={walkMesh} />
       </Canvas>
+
+      {dialogOpen && (
+  <AtticDialog
+    onClose={() => setDialogOpen(false)}
+    onAddToCart={(item) => {
+      cart.add({ id: item.id, title: item.title, price: item.price, objectKey: item.id });
+      setDialogOpen(false);
+    }}
+  />
+)}
 
       {pickedProduct && pickedKey && (
         <Modal
