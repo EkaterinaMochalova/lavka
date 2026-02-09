@@ -6,7 +6,6 @@ import { useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 import { useCart } from '../cart/useCart';
 import AskAntiquarianDialog from '../components/AskAntiquarianDialog';
-import AtticDialog from './AtticDialog';
 
 
 const EYE_HEIGHT = 1.8;
